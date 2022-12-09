@@ -5,11 +5,12 @@ from pathlib import Path
 from pprint import PrettyPrinter
 pp = PrettyPrinter(indent=2).pprint
 
-RADIUS = 5
-WIDTH = 600
-HIEGHT = 800
+RADIUS = 3
+WIDTH = 1080
+HIEGHT = 1920
 SEED_COUNT = 100
-FILENAME = str((Path('__file__').parent / 'data.ppm').resolve().absolute())
+DISTANCE_FUNC = 'euclidean'
+FILENAME = str((Path('__file__').parent.parent / '.github' / f'{DISTANCE_FUNC}.png').resolve().absolute())
 
 COLOR_BLACK = 0
 COLOR_GREY = 128
@@ -29,6 +30,16 @@ def fill_background(image: np.ndarray, color: int) -> np.ndarray:
     return image
 
 
+def distance_func(x0, y0, x1, y1, radius, distance='', numeric=False) -> int:
+    match distance:
+        case 'manhattan':
+            val = (abs(x0 - x1) + abs(y0 - y1))
+            return val if numeric else val < radius
+        case _:
+            val = (x0 - x1)**2 + (y0 - y1)**2
+            return val if numeric else val < radius**2
+
+
 def fill_circle(cx, cy, radius, image, color) -> None:
     x0 = cx - radius
     x1 = cx + radius
@@ -38,9 +49,7 @@ def fill_circle(cx, cy, radius, image, color) -> None:
         if (0 <= i < HIEGHT):
             for j in range(y0, y1):
                 if (0 <= j < WIDTH):
-                    dx = cx - i
-                    dy = cy - j
-                    if (dx**2 + dy**2) < radius**2:
+                    if distance_func(cx, cy, i, j, radius):
                         image[j, i] = color
 
 
@@ -49,7 +58,7 @@ def compute_minimum(x0, y0, seeds: list[tuple[int, int]]) -> tuple[int, int]:
     g = float('inf')
     for i in range(1, SEED_COUNT):
         x1, y1 = seeds[i]
-        d = (x0 - x1)**2 + (y0 - y1)**2
+        d = distance_func(x0, y0, x1, y1, RADIUS, DISTANCE_FUNC, numeric=True)
         if d < g:
             g = d
             min_seed = seeds[i]
@@ -59,8 +68,8 @@ def compute_minimum(x0, y0, seeds: list[tuple[int, int]]) -> tuple[int, int]:
 def compute_vonoroi(seeds: list[tuple[int, int]]) -> dict:
     vonoroi_map = {}
     for i in range(WIDTH):
-            for j in range(HIEGHT):
-                    vonoroi_map[(j, i)] = compute_minimum(j, i, seeds)
+        for j in range(HIEGHT):
+            vonoroi_map[(j, i)] = compute_minimum(j, i, seeds)
     return vonoroi_map
 
 
