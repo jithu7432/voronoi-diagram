@@ -1,19 +1,16 @@
 import imageio
 import numpy as np
 
-from pprint import PrettyPrinter
+from pathlib import Path
 
-pp = PrettyPrinter(indent=3).pprint
-
-
-WIDTH = 1080  
-HIEGHT = 1920 
-FILENAME = 'data.ppm'
-SEED_COUNT = 20
 RADIUS = 5
+WIDTH = 600
+HIEGHT = 800
+SEED_COUNT = 20
+FILENAME = str((Path('__file__').parent / 'data.ppm').resolve().absolute())
 
-COLOR_GREY = 100
 COLOR_BLACK = 0
+COLOR_GREY = 128
 COLOR_WHITE = 255
 
 
@@ -22,7 +19,7 @@ def save_image_as_ppm(imarray) -> None:
 
 
 def generate_seeds() -> list[tuple[int, int]]:
-    return [(np.random.randint(WIDTH), np.random.randint(HIEGHT)) for _ in range(SEED_COUNT)]
+    return [(np.random.randint(HIEGHT), np.random.randint(WIDTH)) for _ in range(SEED_COUNT)]
 
 
 def fill_background(image: np.ndarray, color: int) -> np.ndarray:
@@ -31,10 +28,14 @@ def fill_background(image: np.ndarray, color: int) -> np.ndarray:
 
 
 def fill_circle(cx, cy, radius, image, color) -> None:
-    for i in range(image.shape[0]):
-        if (0 <= i <= WIDTH):
-            for j in range(image.shape[1]):
-                if (0 <= j <= HIEGHT):
+    x0 = cx - radius
+    x1 = cx + radius
+    y0 = cy - radius
+    y1 = cy + radius
+    for i in range(x0, x1 + 1):
+        if (0 <= i < WIDTH):
+            for j in range(y0, y1+ 1):
+                if (0 <= j < HIEGHT):
                     dx = cx - i
                     dy = cy - j
                     if (dx**2 + dy**2) < radius**2:
@@ -55,10 +56,10 @@ def compute_minimum(x0, y0, seeds: list[tuple[int, int]]) -> tuple[int, int]:
 
 def compute_vonoroi(image: np.ndarray, seeds: list[tuple[int, int]]) -> dict:
     vonoroi_map = {}
-    for i in range(image.shape[0]):
-        if (0 <= i <= WIDTH):
-            for j in range(image.shape[1]):
-                if (0 <= j <= HIEGHT):
+    for i in range(WIDTH):
+        if (0 <= i < WIDTH):
+            for j in range(HIEGHT):
+                if (0 <= j < HIEGHT):
                     vonoroi_map[(i, j)] = compute_minimum(i, j, seeds)
     return vonoroi_map
 
@@ -79,9 +80,9 @@ def generate_color_palette(seeds, vonoroi_map: dict) -> dict:
 
 
 def fill_vonoroi_map(image, vonoroi_map: dict, color_palette: dict) -> None:
-    for i in range(image.shape[0]-1):
-        for j in range(image.shape[1]-1):
-                image[i, j] = color_palette[vonoroi_map[(i, j)]]
+    for i in range(WIDTH):
+        for j in range(HIEGHT):
+            image[i, j] = color_palette.get(vonoroi_map[(i, j)], 0)
 
 
 def main() -> None:
